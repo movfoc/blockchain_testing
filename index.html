@@ -1,0 +1,262 @@
+<head>
+    <link
+      href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.6.1/web3.min.js"
+      integrity="sha512-5erpERW8MxcHDF7Xea9eBQPiRtxbse70pFcaHJuOhdEBQeAxGQjUwgJbuBDWve+xP/u5IoJbKjyJk50qCnMD7A=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+  </head>
+  
+  <body class="h-full">
+    <div
+      class="
+        flex
+        w-full
+        h-full
+        justify-center
+        content-center
+        items-center
+        space-x-4
+      "
+    >
+      <div class="flex flex-col space-y-6">
+        <h3 class="text-center">Please connect wallet before update the name</h3>
+        <div class="flex flex-col space-y-2">
+          <button
+            onclick="loginWithEth()"
+            class="
+              rounded
+              bg-white
+              border border-gray-400
+              hover:bg-gray-100
+              py-2
+              px-4
+              text-gray-600
+              hover:text-gray-700
+            "
+          >
+            Login & Save ETH Address
+          </button>
+          <p id="userAddress" class="text-gray-600"></p>
+          <button
+            id="logoutButton"
+            onclick="logout()"
+            class="hidden text-blue-500 underline"
+          >
+            Logout
+          </button>
+        </div>
+        <input type="text" id="newName" style="background-color:#c9b873;" onkeyup="EnableDisable(this)">
+        <button
+          id="setName"
+          onclick="setUserName()"
+          class="rounded bg-blue-500 hover:bg-blue-700 py-2 px-4 text-white"
+          disabled="disabled" 
+        >
+          Set Name
+        </button>
+        <button
+          id="getName"
+          onclick="getUserName()"
+          class="rounded bg-blue-500 hover:bg-blue-700 py-2 px-4 text-white"
+        >
+          Get Name
+        </button>
+        
+        <div class="flex flex-col space-y-2"></div>
+      </div>
+      
+    </div>
+  
+    <script>
+        function EnableDisable(newName) {
+        //Reference the Button.
+        var btnSubmit = document.getElementById("setName");
+         //Verify the TextBox value.
+        if (newName.value.trim() != "") {
+            //Enable the TextBox when TextBox has value.
+            btnSubmit.disabled = false;
+        } else {
+            //Disable the TextBox when TextBox is empty.
+            btnSubmit.disabled = true;
+        }
+      }; 
+      window.userAddress = null;
+      window.onload = async () => {
+        // Init Web3 connected to ETH network
+        if (window.ethereum) {
+          window.web3 = new Web3(window.ethereum);
+          //web3.eth.net.getNetworkType().then(console.log);
+ 
+        } else {
+          alert("No ETH brower extension detected.");
+        }
+  
+        // Load in Localstore key
+        window.userAddress = window.localStorage.getItem("userAddress");
+        showAddress();
+      };
+  
+      // Use this function to turn a 42 character ETH address
+      // into an address like 0x345...12345
+      function truncateAddress(address) {
+        if (!address) {
+          return "";
+        }
+        return `${address.substr(0, 5)}...${address.substr(
+          address.length - 5,
+          address.length
+        )}`;
+        
+      }
+  
+      // Display or remove the users know address on the frontend
+      function showAddress() {
+        var NetText = "";
+        const detectEthereumNetwork = async () => {
+            const web3 = await getWeb3();
+            web3.eth.net.getNetworkType().then(async (netId) => {
+                // Do something based on which network ID the user is connected to
+                switch (netId) {
+                    case "1":
+                    NetText = 'This is mainnet'
+                    break
+                    case "2":
+                    NetText = 'This is the deprecated Morden test network.'
+                    break
+                    case "3":
+                    NetText = 'This is the ropsten test network.'
+                    break
+                    default:
+                    NetText = 'This is an unknown network.'
+                }
+            });
+        }
+        if (!window.userAddress) {
+          document.getElementById("userAddress").innerText = "";
+          document.getElementById("logoutButton").classList.add("hidden");
+          return false;
+        }
+        
+        document.getElementById(
+          "userAddress"
+        ).innerText = `ETH Address: ${truncateAddress(window.userAddress)}  ${NetText}`;
+        document.getElementById("logoutButton").classList.remove("hidden");
+      }
+  
+      // remove stored user address and reset frontend
+      function logout() {
+        window.userAddress = null;
+        window.localStorage.removeItem("userAddress");
+        showAddress();
+      }
+  
+      // Login with Web3 via Metamasks window.ethereum library
+      async function loginWithEth() {
+        if (window.web3) {
+          try {
+            // We use this since ethereum.enable() is deprecated. This method is not
+            // available in Web3JS - so we call it directly from metamasks' library
+            const selectedAccount = await window.ethereum
+              .request({
+                method: "eth_requestAccounts",
+              })
+              .then((accounts) => accounts[0])
+              .catch(() => {
+                throw Error("No account selected!");
+              });
+            window.userAddress = selectedAccount;
+            window.localStorage.setItem("userAddress", selectedAccount);
+            showAddress();
+          } catch (error) {
+            console.error(error);
+          }
+        } else {
+          alert("No ETH brower extension detected.");
+        }
+      }
+  
+      // Go to blockchain set and get the contract details. Keep in mind
+      // YOU MUST BE CONNECT TO RINKEBY NETWORK TO USE THIS FUNCTION
+      // why -> because this specific contract address is on ethereum.
+      // When you click login, just make sure your network is Rinkeby and it will all workout.
+
+      async function setUserName() {
+        const CONTRACT_ADDRESS = "0x0eeAf06DA13997baB2C685D9554c04F6bee455a7";
+        var Updated_Name = document.getElementById("newName").value;
+        const contract = new window.web3.eth.Contract(
+          window.ABI,
+          CONTRACT_ADDRESS
+        );
+        const setnaming = await contract.methods
+          .setName(`${Updated_Name}`)
+          .send({ from: window.userAddress }); 
+        alert(`Contract ${CONTRACT_ADDRESS} Name: ${setnaming}`);
+      }
+      async function getUserName() {
+        const CONTRACT_ADDRESS = "0x0eeAf06DA13997baB2C685D9554c04F6bee455a7";
+        const contract = new window.web3.eth.Contract(
+          window.ABI,
+          CONTRACT_ADDRESS
+        );
+        const naming = await contract.methods
+          .getName()
+          .call({ from: window.userAddress });
+        alert(`Contract ${CONTRACT_ADDRESS} Name: ${naming}`);
+      }
+      window.ABI = [
+            {
+                "constant": false,
+                "inputs": [
+                    {
+                        "name": "_setName",
+                        "type": "string"
+                    }
+                ],
+                "name": "setName",
+                "outputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "payable": false,
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "getName",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "string"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "constant": true,
+                "inputs": [],
+                "name": "getOwnerBalance",
+                "outputs": [
+                    {
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "payable": false,
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ]
+    </script>
+  </body>
