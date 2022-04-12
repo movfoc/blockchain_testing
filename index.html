@@ -11,6 +11,26 @@
         <div>
             <p>Wallet address - <span id="wallet-address"></span></p>
             <p><span id="current-count"></span></p>
+		</div>
+		<div>
+			<h3 class="text-center">Enter the KOL name:</h3>
+			<input type="text" id="newName" style="background-color:#c9b873;" onkeyup="EnableDisable(this)">
+			<button
+			id="setName"
+			onclick="setUserName()"
+			class="rounded bg-blue-500 hover:bg-blue-700 py-2 px-4 text-white"
+			disabled="disabled" 
+			>
+			Submit
+			</button>
+			<button
+			id="getName"
+			onclick="getUserName()"
+			class="rounded bg-blue-500 hover:bg-blue-700 py-2 px-4 text-white"
+			>
+			Read
+			</button>
+		<div>
             <p><button id="Single-Mint">Single Mint</button></p>
             <p><button id="Double-Mint">Double Mint</button></p>
             <p><button id="Triple-Mint">Triple Mint</button></p>
@@ -19,6 +39,7 @@
         
         var account = null;
         var contract = null;
+		var NetText = "";
         const ABI = [
 	{
 		"inputs": [
@@ -941,7 +962,18 @@
         const buf2hex = x => '0x' + x.toString('hex');
 
         //console.log(buf2hex(tree.getRoot()))
-
+		function EnableDisable(newName) {
+			//Reference the Button.
+			var btnSubmit = document.getElementById("setName");
+			//Verify the TextBox value.
+			if (newName.value.trim() != "") {
+				//Enable the TextBox when TextBox has value.
+				btnSubmit.disabled = false;
+			} else {
+				//Disable the TextBox when TextBox is empty.
+				btnSubmit.disabled = true;
+			}
+		}; 
         (async () => {
             if (window.ethereum){
                 await window.ethereum.send('eth_requestAccounts');
@@ -996,6 +1028,31 @@
                 }
             }
         })();
+		async function setUserName() {
+			await window.ethereum.send('eth_requestAccounts');
+                window.web3 = new Web3(window.ethereum);
+                var accounts = await web3.eth.getAccounts();
+                account = accounts[0];
+			var Updated_Name = document.getElementById("newName").value;
+			document.getElementById('wallet-address').textContent = account;
+			contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+			const setnaming = await contract.methods
+			.setName(`${Updated_Name}`)
+			.send({ from: account }); 
+			//alert(`KOL name saved: ${setnaming}`);
+      }
+      async function getUserName() {
+        await window.ethereum.send('eth_requestAccounts');
+				window.web3 = new Web3(window.ethereum);
+				var accounts = await web3.eth.getAccounts();
+				account = accounts[0];
+			document.getElementById('wallet-address').textContent = account;
+			const naming = await contract.methods
+			.getName()
+			.call({ from: account });
+			//alert(`Contract ${CONTRACT_ADDRESS} Name: ${naming}`);
+			alert(`KOL name saved: ${naming}`);
+      }
         </script>
     </body>
 </html>
